@@ -11,6 +11,10 @@ contract LendingAndBorrowing{
     using LendingHelper for address;
 
     address private owner;
+    address[] public lenders;
+    address[] public borrowers;
+
+    mapping(address => address) public tokenToPriceFeed;
 
     IERC20 public larToken;
 
@@ -60,7 +64,12 @@ contract LendingAndBorrowing{
         }
     }
 
-    function addTokenToPriceFeedMapping() external onlyOwner {}
+    function addTokenToPriceFeedMapping(
+        address tokenAddress,
+        address tokenToUsdPriceFeed
+    ) external onlyOwner {
+        tokenToPriceFeed[tokenAddress] = tokenToUsdPriceFeed;
+    }
 
     function lend() external payable {}
 
