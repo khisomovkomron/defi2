@@ -87,6 +87,16 @@ contract LendingAndBorrowing{
     function withdraw() external {}
 
     // CHECKERS
+    function tokenIsAllowed(address tokenAddress, Token[] memory tokenArray) private pure returns (bool) {
+        if (tokenArray.length > 0) {
+            for (uint256 i=0; i < tokenArray.length; i++) {
+                if (tokenArray[i].tokenAddress == tokenAddress) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     function tokenIsAlreadyThere(Token memory token, Token[] memory tokenArray) private pure returns (bool) {
         if (tokenArray.length > 0) {
