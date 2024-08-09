@@ -18,6 +18,13 @@ contract LendingAndBorrowing{
     // MAPPINGS 
     mapping(address => address) public tokenToPriceFeed;
 
+    mapping(address => mapping(address => uint256)) public tokensLentAmount;
+    mapping(address => mapping(address => uint256)) public tokensBorrowedAmount;
+
+    mapping(uint256 => mapping(address => address)) public tokensLent;
+    mapping(uint256 => mapping(address => address)) public tokensBorrowed;
+
+
     //EVENTS
     
 
@@ -125,6 +132,26 @@ contract LendingAndBorrowing{
 
     function getTokensForBorrowingArray() public view returns (Token[] memory) {
         return tokensForBorrowing;
+    }
+
+    function getTotalTokenSupplied(address tokenAddress) public view returns (uint256) {
+        uint256 totalTokenSupplied = 0;
+        if (lenders.length > 0) {
+            for (uint256 i=0; i < lenders.length; i++) {
+                totalTokenSupplied += tokensLentAmount[tokenAddress][lenders[i]];
+            }
+        }
+        return totalTokenSupplied;
+    }
+
+    function getTotalTokenBorrowed(address tokenAddress) public view returns (uint256) {
+        uint256 totalTokenBorrowed = 0;
+        if (lenders.length > 0) {
+            for (uint256 i=0; i < lenders.length; i++) {
+                totalTokenBorrowed += tokensBorrowedAmount[tokenAddress][lenders[i]];
+            }
+        }
+        return totalTokenBorrowed;
     }
 
 }
