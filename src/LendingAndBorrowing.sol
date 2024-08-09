@@ -10,16 +10,16 @@ import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20
 contract LendingAndBorrowing{
     using LendingHelper for address;
 
+    //VARIABLES
     address private owner;
     address[] public lenders;
     address[] public borrowers;
 
+    // MAPPINGS 
     mapping(address => address) public tokenToPriceFeed;
 
-    IERC20 public larToken;
-
-    Token[] public tokensForLending;
-    Token[] public tokensForBorrowing;
+    //EVENTS
+    
 
     struct Token{
         address tokenAddress;
@@ -28,11 +28,18 @@ contract LendingAndBorrowing{
         string name;
     }
 
+    IERC20 public larToken;
+
+    Token[] public tokensForLending;
+    Token[] public tokensForBorrowing;
+
+    // CONSTRUCTOR
     constructor(address _token) {
         larToken = IERC20(_token);
         owner = msg.sender;
     }
 
+    //MODIFIERS 
     modifier onlyOwner() {
         require(msg.sender == owner, "Sender is not Owner!");
         _;
@@ -79,6 +86,8 @@ contract LendingAndBorrowing{
 
     function withdraw() external {}
 
+    // CHECKERS
+
     function tokenIsAlreadyThere(Token memory token, Token[] memory tokenArray) private pure returns (bool) {
         if (tokenArray.length > 0) {
             for (uint256 i=0; i < tokenArray.length; i++) {
@@ -90,5 +99,22 @@ contract LendingAndBorrowing{
         return false;
     }
 
+    // GETTERS 
+
+    function getLendersArray() public view returns (address[] memory) {
+        return lenders;
+    }
+
+    function getBorrowersArray() public view returns (address[] memory) {
+        return borrowers;
+    }
+
+    function getTokensForLendingArray() public view returns (Token[] memory) {
+        return tokensForLending;
+    }
+
+    function getTokensForBorrowingArray() public view returns (Token[] memory) {
+        return tokensForBorrowing;
+    }
 
 }
