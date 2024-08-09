@@ -47,7 +47,18 @@ contract LendingAndBorrowing{
         }
     }
 
-    function addTokensForBorrowing() external onlyOwner {}
+    function addTokensForBorrowing(
+        string memory name,
+        address tokenAddress,
+        uint256 LTV,
+        uint256 borrowStableRate
+    ) external onlyOwner {
+        Token memory token = Token(tokenAddress, LTV, borrowStableRate, name);
+
+        if (!tokenIsAlreadyThere(token, tokensForBorrowing)) {
+            tokensForBorrowing.push(token);
+        }
+    }
 
     function addTokenToPriceFeedMapping() external onlyOwner {}
 
