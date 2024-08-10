@@ -34,11 +34,13 @@ contract LendingAndBorrowing{
         uint256 stableRate;
         string name;
     }
+    Token[] public tokensForLending;
+    Token[] public tokensForBorrowing;
 
     IERC20 public larToken;
 
-    Token[] public tokensForLending;
-    Token[] public tokensForBorrowing;
+    uint256 public noOfTokensLent = 0;
+    uint256 public noOfTokensBorrowed = 0;
 
     // CONSTRUCTOR
     constructor(address _token) {
@@ -85,13 +87,75 @@ contract LendingAndBorrowing{
         tokenToPriceFeed[tokenAddress] = tokenToUsdPriceFeed;
     }
 
-    function lend() external payable {}
+    function lend(
+        address tokenAddress, 
+        uint256 amount
+    ) external payable {
+        require(tokenIsAllowed(tokenAddress, tokensForLending));
+        require(amount > 0);
+        
+        IERC20 token = IERC20(tokenAddress);
+        require(token.balanceOf(msg.sender) >= amount);
+
+        token.transferFrom(msg.sender, address(this), amount);
+
+        (bool userPresent, int256 userIndex) = msg.sender.isUserPresentIn(lenders);
+
+        if (userPresent) {
+            updateUserTokenBorrowedOrLent(tokenAddress, amount, userIndex, "lenders");
+        } else {
+            lenders.push(msg.sender);
+            tokensLentAmount[tokenAddress][msg.sender] = amount;
+            tokensLent[noOfTokensLent++][msg.sender] = tokenAddress;
+        }
+
+        larToken.transfer(msg.sender, getAmountInDollars(amount, tokenAddress));
+    }
 
     function borrow() external {}
 
     function payDept() external {}
 
     function withdraw() external {}
+
+    function getAmountInDollars(
+        uint256 amount, 
+        address tokenAddress
+    ) public view returns (uint256) {}
+
+    function updateUserTokenBorrowedOrLent(
+        address tokenAddress,
+        uint256 amount,
+        int256 userIndex,
+        string memory lendersOrBorrowers
+    ) private {
+        if (keccak256(abi.encodePacked(lendersOrBorrowers)) == keccak256(abi.encodePacked("lenders"))) {
+            address currentUser = lenders[uint256(userIndex)];
+
+            if (hasLentOrBorrowedToken(currentUser, tokenAddress, noOfTokensLent, "tokensLent")) {
+                tokensLentAmount[tokenAddress][currentUser] += amount;
+            } else {
+                tokensLent[noOfTokensLent++][currentUser] = tokenAddress;
+                tokensLentAmount[tokenAddress][currentUser] = amount;
+            }
+        } else if (keccak256(abi.encodePacked(lendersOrBorrowers)) == keccak256(abi.encodePacked("borrowers"))) {
+            address currentUser = borrowers[uint256(userIndex)];
+
+            if (hasLentOrBorrowedToken(currentUser, tokenAddress, noOfTokensLent, "tokensBorrowed")) {
+                tokensBorrowedAmount[tokenAddress][currentUser] += amount;
+            } else {
+                tokensBorrowed[noOfTokensLent++][currentUser] = tokenAddress;
+                tokensBorrowedAmount[tokenAddress][currentUser] = amount;
+            }
+        } 
+    }
+
+    function hasLentOrBorrowedToken(
+        address currentUser,
+        address tokenAddress,
+        uint256 noOfTokensLentOrBorrowed,
+        string memory _tokenLentOrBorrowed
+    ) public view returns (bool) {}
 
     // CHECKERS
     function tokenIsAllowed(address tokenAddress, Token[] memory tokenArray) private pure returns (bool) {
