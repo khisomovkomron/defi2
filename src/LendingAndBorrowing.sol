@@ -26,6 +26,17 @@ contract LendingAndBorrowing{
 
 
     //EVENTS
+
+    event Supply(address sender, address[] lenders, uint256 currenUserTokenLentAmount);
+    event Borrow(
+        address sender, 
+        uint256 amountInDollars,
+        uint256 totalAmountAvailableForBorrowInDollars,
+        bool userPresent,
+        int256 userIndex,
+        address[] borrowers, 
+        uint256 currentUserTokenBorrowedAmount
+    );
     
 
     struct Token{
@@ -110,9 +121,44 @@ contract LendingAndBorrowing{
         }
 
         larToken.transfer(msg.sender, getAmountInDollars(amount, tokenAddress));
+
+        emit Supply(msg.sender, lenders, tokensLentAmount[tokenAddress][msg.sender]);
     }
 
-    function borrow() external {}
+    function borrow(
+        uint256 amount, 
+        address tokenAddress
+    ) external {
+        require(tokenIsAllowed(tokenAddress, tokensForBorrowing));
+        require(amount > 0);
+
+        uint256 totalAmountAvailableForBorrowInDollars = getUserTotalAmountAvailableForBorrowInDollars(msg.sender);
+        uint256 amountInDollar = getAmountInDollars(amount, tokenAddress);
+
+        require(amountInDollar <= totalAmountAvailableForBorrowInDollars);
+
+        IERC20 token = IERC20(tokenAddress);
+
+        (bool userPresent, int256 userIndex) = msg.sender.isUserPresentIn(borrowers);
+
+        if (userPresent) {
+            updateUserTokenBorrowedOrLent(tokenAddress, amount, userIndex, "borrowers");
+        } else {
+            borrowers.push(msg.sender);
+            tokensBorrowedAmount[tokenAddress][msg.sender] = amount;
+            tokensBorrowed[noOfTokensBorrowed++][msg.sender] = tokenAddress;
+        }
+
+        emit Borrow(
+            msg.sender,
+            amountInDollar,
+            totalAmountAvailableForBorrowInDollars,
+            userPresent,
+            userIndex,
+            borrowers,
+            tokensBorrowedAmount[tokenAddress][msg.sender]
+        );
+    }
 
     function payDept() external {}
 
@@ -148,6 +194,44 @@ contract LendingAndBorrowing{
                 tokensBorrowedAmount[tokenAddress][currentUser] = amount;
             }
         } 
+    }
+
+    function getUserTotalAmountAvailableForBorrowInDollars(address user) public view returns (uint256) {
+        uint256 userTotalCollateralToBorrow = 0;
+        uint256 userTotalCollateralAlreadyBorrowed = 0;
+
+        for (uint256 i=0; i <lenders.length; i++) {
+            address currentLender = lenders[i];
+            if(currentLender == user) {
+                for (uint256 j=0; j < tokensForLending.length; j ++) {
+                    Token memory currentTokenForLending = tokensForLending[j];
+                    uint256 currentTokenForLentAmount = tokensLentAmount[currentTokenForLending.tokenAddress][user];
+                    uint256 currentTokenLentAmountInDollar = getAmountInDollars(currentTokenForLentAmount, currentTokenForLending.tokenAddress);
+
+                    uint256 availableInDollar = (currentTokenLentAmountInDollar * currentTokenForLending.LTV) / 10**18;
+                    userTotalCollateralToBorrow += availableInDollar;
+                }
+            }
+        }
+
+        for (uint256 i = 0; i < borrowers.length; i++) {
+              address currentBorrower = borrowers[i];
+              if (currentBorrower == user) {
+                  for (uint256 j = 0; j < tokensForBorrowing.length; j++) {
+                      Token memory currentTokenForBorrowing = tokensForBorrowing[j];
+                      uint256 currentTokenBorrowedAmount = tokensBorrowedAmount[currentTokenForBorrowing.tokenAddress][user];
+                      uint256 currentTokenBorrowedAmountInDollar = getAmountInDollars(
+                              (currentTokenBorrowedAmount),
+                              currentTokenForBorrowing.tokenAddress
+                          );
+
+                      userTotalCollateralAlreadyBorrowed += currentTokenBorrowedAmountInDollar;
+                  }
+              }
+          }
+
+          return userTotalCollateralToBorrow - userTotalCollateralAlreadyBorrowed;
+
     }
 
     function hasLentOrBorrowedToken(
