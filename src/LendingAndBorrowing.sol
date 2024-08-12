@@ -186,7 +186,7 @@ contract LendingAndBorrowing{
 
         tokensBorrowedAmount[tokenAddress][msg.sender] -= amount;
 
-        if (getTotalAmountBorrowedInDollars[msg.sender] == 0) {
+        if (getTotalAmountBorrowedInDollars(msg.sender) == 0) {
             borrowers[uint256(index)] = borrowers[borrowers.length - 1];
             borrowers.pop();
         }
@@ -206,6 +206,21 @@ contract LendingAndBorrowing{
         uint256 amount, 
         address tokenAddress
     ) public view returns (uint256) {}
+
+    function getTotalAmountBorrowedInDollars(address user) public view returns (uint256) {
+        uint256 totalAmountBorrowed = 0;
+        for(uint256 i=0; i < noOfTokensBorrowed; i++) {
+            address userBorrowedTokenAddressFund = tokensBorrowed[i][user];
+
+            if (userBorrowedTokenAddressFund != 0x0000000000000000000000000000000000000000) {
+                uint256 tokenAmountBorrowedInDollars = getAmountInDollars(
+                    tokensBorrowedAmount[userBorrowedTokenAddressFund][user], 
+                    userBorrowedTokenAddressFund);
+                totalAmountBorrowed += tokenAmountBorrowedInDollars;
+            }
+        }
+        return totalAmountBorrowed;
+    }
 
     function updateUserTokenBorrowedOrLent(
         address tokenAddress,
