@@ -37,6 +37,13 @@ contract LendingAndBorrowing{
         address[] borrowers, 
         uint256 currentUserTokenBorrowedAmount
     );
+    event PayDept(
+        address sender,
+        int256 index,
+        uint256 tokenAmountBorrowed,
+        uint256 totalTokenAmountToCollectFromUser,
+        address[] borrowers
+    );
     
 
     struct Token{
@@ -160,7 +167,38 @@ contract LendingAndBorrowing{
         );
     }
 
-    function payDept() external {}
+    function payDept(
+        address tokenAddress, 
+        uint256 amount
+    ) external {
+        require(amount > 0);
+
+        int256 index = msg.sender.indexOf(borrowers);
+
+        require(index >= 0);
+
+        uint256 tokenBorrowed = tokensBorrowedAmount[tokenAddress][msg.sender];
+
+        require(tokenBorrowed > 0);
+        IERC20 token = IERC20(tokenAddress);
+
+        token.transferFrom(msg.sender, address(this), amount);
+
+        tokensBorrowedAmount[tokenAddress][msg.sender] -= amount;
+
+        if (getTotalAmountBorrowedInDollars[msg.sender] == 0) {
+            borrowers[uint256(index)] = borrowers[borrowers.length - 1];
+            borrowers.pop();
+        }
+
+        emit PayDept(
+            msg.sender,
+            index,
+            tokenBorrowed,
+            amount,
+            borrowers
+        );
+    }
 
     function withdraw() external {}
 
